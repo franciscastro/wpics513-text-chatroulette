@@ -10,7 +10,7 @@ struct in_addr
 
 struct sockaddr
 {
-	unisigned short sa_family;
+	unsigned short sa_family;
 	char sa_data[14];	
 };
 
@@ -69,12 +69,15 @@ int main()
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags = AI_PASSIVE;
 
-	if ((status = getaddrinfo(NULL, "3490", &hints, &serverinfo)) != 0 )
+	if ((status = getaddrinfo(NULL, "3490", &hints, &serivnfo)) != 0 )
 	{
 		fprintf(stderr, "getaddrinfo error: %s\n", gai_strerror(status));
 		exit(1);
 	}
 	//servinfo now points to a linked list of 1 or more struct addrinfos
+
+	//connect to specific host 
+	status = getaddrinfo("www.example.net", "3490", &hints, &servinfo)
 
 	return 0;
 }
