@@ -10,7 +10,7 @@ struct in_addr
 
 struct sockaddr
 {
-	unisigned short sa_family;
+	unsigned short sa_family;
 	char sa_data[14];	
 };
 
