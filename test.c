@@ -1,3 +1,11 @@
+/*
+Authors: Francisco Castro, Antonio Umali
+CS 513 Project 1 - Chat Roulette
+Last modified: 28 Sept 2015
+
+This is a test file.
+*/
+
 #include <stdio.h>
 #include <sys/socket.h>
 #include <sys/types.h>
