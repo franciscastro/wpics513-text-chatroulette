@@ -1,4 +1,13 @@
-#include <structs.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+
+#define MYPORT "3490" // the port users will be connecting to test
+#define BACKLOG 10 
 
 // pass hints and res as args?
 void listen_to_connections(int myport)
@@ -27,6 +36,26 @@ void listen_to_connections(int myport)
 	new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &addr_size);
 
 	// ready to communicate on socket descriptor new_fd
+}
+
+bool send_data(int sockfd, char *msg)
+{
+	int len, bytes_sent;
+	len = strlen(msg);
+
+	bytes_sent = send(sockfd, msg, len, 0);
+
+	// add sendto() function later
+	return (bytes_sent == len);
+}
+
+}
+int recieve_data(int sockfd, void *buffer, int len)
+{
+	int flags = 0;
+
+	// add recvfrm() function later
+	return recieve(sockfd, buffer, len, flags);
 }
 
 int main(int argc, char *argv[])

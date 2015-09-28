@@ -46,3 +46,15 @@ struct sockaddr_storage
 	int64_t __ss_align;
 	char __ss_pad2[_SS_PAD2SIZE];
 };
+
+int getaddrinfo(const char *node, // e.g. "www.example.com" or IP
+				const char *service, // e.g. "http" or port number
+				const struct addrinfo *hints,
+				struct addrinfo **res);
+int socket(int domain, int type, int protocol); 
+int bind(int sockfd, struct sockaddr *my_addr, int addrlen);
+int connect(int sockfd, struct sockaddr *serv_addr, int addrlen);
+int listen(int sockfd, int backlog);
+int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
+int send(int sockfd, const void *msg, int len, int flags);
+int recv(int sockfd, void *buf, int len, int flags);
