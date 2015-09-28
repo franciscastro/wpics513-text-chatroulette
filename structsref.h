@@ -15,6 +15,12 @@ This is a reference file for the structures and system calls being used.
 #include <netinet/in.h>
 
 /*
+--------------------------------------------------------------------------
+Structures
+--------------------------------------------------------------------------
+*/
+
+/*
 Used to prep the socket address structures for subsequent use.
 Used in host name lookups and service name lookups.
 */
@@ -99,25 +105,74 @@ struct sockaddr_storage
     char      __ss_pad2[_SS_PAD2SIZE];
 };
 
-/*System Calls*/
-//--------------------------------------------------------------------------
+/*
+--------------------------------------------------------------------------
+System Calls
+--------------------------------------------------------------------------
+*/
 
-int getaddrinfo(const char *node, 		// e.g. "www.example.com" or IP
-				const char *service, 	// e.g. "http" or port number
-				const struct addrinfo *hints,
-				struct addrinfo **res);
+/*
+Fills out the structs you need, returns a pointer to a linked-list, res, of results.
+*/
+int getaddrinfo(const char *node, 				// e.g. "www.example.com" or IP
+				const char *service, 			// e.g. "http" or port number
+				const struct addrinfo *hints,	// points to a struct addrinfo filled out with relevant information
+				struct addrinfo **res);			// holds results of call to gettaddrinfo()
 
-int socket(int domain, int type, int protocol); 
+/*
+Returns to a socket descriptor for later system calls, or -1 on error.
+*/
+int socket(int domain,		// PF_INET or PF_INET6
+		   int type,		// SOCK_STREAM or SOCK_DGRAM
+		   int protocol);	// can be set to 0 to choose the proper protocol for the given type
 
-int bind(int sockfd, struct sockaddr *my_addr, int addrlen);
+/*
+Associate that socket with a port on your local machine.
+Returns -1 on error and sets errno to the error's value.
+*/
+int bind(int sockfd,				// socket file descriptor returned by socket()
+		 struct sockaddr *my_addr,	// pointer to a struct sockaddr that contains information about your address, namely, port and IP addres
+		 int addrlen);				// length in bytes of that^ address
 
-int connect(int sockfd, struct sockaddr *serv_addr, int addrlen);
+/*
+Connect to a remote host.
+Return -1 on error and set the variable errno.
+*/
+int connect(int sockfd,						// socket file descriptor returned by the socket()
+			struct sockaddr *serv_addr,		// a struct sockaddr containing the destination port and IP address
+			int addrlen);					// length in bytes of the server address structure^
 
-int listen(int sockfd, int backlog);
+/*
+Wait for incoming connections and handle them.
+Call bind() before listen() so that the server is running on a specific port.
+*/
+int listen(int sockfd,		// socket file descriptor from the socket()
+		   int backlog);	// number of connections allowed on the incoming queue
+							//-- incoming connections are going to wait in this queue until you accept() them
 
-int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
+/*
+Returns a brand new socket file descriptor to use for a single connection.
+*/
+int accept(int sockfd,				// the listen()ing socket descriptor
+		   struct sockaddr *addr,	// pointer to a local struct sockaddr_storage; where the information about the incoming connection will go
+		   socklen_t *addrlen);		// local integer variable that should be set to sizeof(struct sockaddr_storage) before its address is passed to accept()
 
-int send(int sockfd, const void *msg, int len, int flags);
+/*
+Returns the number of bytes actually sent out.
+(this might be less than the number you told it to send)
+-1 is returned on error, and errno is set to the error number.
+*/
+int send(int sockfd,		// socket descriptor you want to send data to
+		 const void *msg,	// pointer to the data you want to send
+		 int len,			// length of that data^ in bytes
+		 int flags);		// just set to 0
 
-int recv(int sockfd, void *buf, int len, int flags);
+/*
+Returns the number of bytes actually read into the buffer, 
+or -1 on error (with errno set, accordingly.)
+*/
+int recv(int sockfd,	// socket descriptor to read from
+		 void *buf,		// buffer to read the information into
+		 int len,		// maximum length of the buffer
+		 int flags);	// just set to 0
 
