@@ -1,10 +1,33 @@
-#include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
+#include <structs.h>
+
+// pass hints and res as args?
+void listen_to_connections(int myport)
+{
+	// wait for incoming connections and handle them
+	struct sockaddr_storage their_addr;
+	socklen_t addr_size;
+	struct addrinfo hints, *res;
+	int sockfd, new_fd;
+
+	// load up structs with getaddrinfo();
+	memset(&hints, 0, sizeof hints);
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_flags = AI_PASSIVE;
+
+	getaddrinfo(NULL, myport, &hints, &res);
+
+	// make socket, bind it, and listen on it
+	sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+	int b = bind(sockfd, res->ai_addr, res->ai_addrlen);
+	int l = listen(sockfd, BACKLOG);
+
+	// accept incoming connection
+	addr_size = sizeof their_addr;
+	new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &addr_size);
+
+	// ready to communicate on socket descriptor new_fd
+}
 
 int main(int argc, char *argv[])
 {
@@ -21,6 +44,7 @@ int main(int argc, char *argv[])
 	memset(&hints, 0, sizeof hints);
 	hints.ai_family = AF_UNSPEC; // AF_INET or AF_INET6 to force version
 	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_flags = AI_PASSIVE; // bind to IP of host it's running on
 
 	// getaddrinfo fills out linked list point to by res
 	if ((status = getaddrinfo(argv[1], NULL, &hints, &res)) != 0) 
@@ -53,6 +77,26 @@ int main(int argc, char *argv[])
 		printf(" %s: %s\n", ipver, ipstr);
 	}
 	freeaddrinfo(res); // free the linked list
+
+	// returns a socket descriptor that can be used later (-1 on error)
+	int s = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+
+
+	// bind (what port am I on?) associate socket with port on local machine
+	int b = bind(s, res->ai_addr, res->ai_addrlen);
+
+	// code to reuse port in case port is hogged
+	int yes = 1;
+	if (setsockopt(listener,SOL_SOCKET,SO_REUSEADDR,&yes,sizeof(int)) == -1) 
+	{
+		perror("setsockopt");
+		exit(1);
+	} 
+	// calling connect() w/o caring for port = don't care about bind()
+
+
+	// use connect()
+	int c = connect(s, res->ai_addr, res->ai_addrlen);
 
 	return 0;
 }
