@@ -12,6 +12,7 @@
 #include <arpa/inet.h>
 #define PORT "3490" // the port client will be connecting to
 #define MAXDATASIZE 100 // max number of bytes we can get at once
+#define STDIN 0
 
 // get sockaddr, IPv4 or IPv6:
 void *get_in_addr(struct sockaddr *sa)
@@ -21,6 +22,27 @@ void *get_in_addr(struct sockaddr *sa)
 		return &(((struct sockaddr_in*)sa)->sin_addr);
 	}
 	return &(((struct sockaddr_in6*)sa)->sin6_addr);
+}
+
+int sendall(int s, char *buf, int *len)
+{
+	int total = 0; //how many bytes sent
+	int bytesleft = *len; //how many bytes left to send
+	int n;
+
+	printf("got message %s for socket %i\n", buf, s);
+
+	while (total < *len)
+	{
+		n = send(s, buf+total, bytesleft, 0);
+		if (n == -1)
+			break;
+		total += n;
+		bytesleft -= n;
+	}
+
+	*len = total; // number actually sent
+	return n == -1? -1 : 0; 
 }
 
 int main(int argc, char *argv[])
@@ -72,13 +94,42 @@ int main(int argc, char *argv[])
 
 	inet_ntop(p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr), s, sizeof s);
 	printf("client: connecting to %s\n", s);
-	freeaddrinfo(servinfo); // all done with this structure
 
+	freeaddrinfo(servinfo); // all done with this structure
+	
+	printf("sending to %i\n", sockfd);
+	char msg[5] = "hello";
+	printf("msg is %s\n", msg);
+	int sent = send(sockfd, msg, strlen(msg) + 1, 0);
+
+	printf("data sent? %i\n", sent != -1);
+
+	// sendall(sockfd, msg, sizeof msg);
+
+	// receive data here(?)
 	if ((numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0)) == -1) 
 	{
 		perror("recv");
 		exit(1);
 	}
+
+	/*
+	// create timeoutstruct
+	struct timeval tv;
+	tv.tv_sec = 2;
+	tv.tv_usec = 500000;
+
+	// set file descriptors
+	fd_set readfds;
+	FD_ZERO(&readfds);
+	FD_SET(STDIN, &readfds);
+	
+	select(STDIN+1, &readfds, NULL, NULL, &tv);
+	if (FD_ISSET(STDIN, &readfds))
+		printf("A key was pressed!\n");
+	else
+		printf("Timed out.\n");
+	*/
 
 	buf[numbytes] = '\0';
 	printf("client: received '%s'\n",buf);
