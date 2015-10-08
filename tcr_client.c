@@ -35,8 +35,8 @@ TO DO:
 - HELP
 */
 
-int sendall(int s, char *buf, int *len)
-{
+int sendall(int s, char *buf, int *len) {
+
     int total = 0;        // how many bytes we've sent
     int bytesleft = *len; // how many we have left to send
     int n;
@@ -57,8 +57,8 @@ int sendall(int s, char *buf, int *len)
 }
 
 // Get sockaddr, IPv4 or IPv6
-void *get_in_addr(struct sockaddr *sa)
-{
+void *get_in_addr(struct sockaddr *sa) {
+
 	// sockaddr is IPv4
 	if (sa->sa_family == AF_INET) 
 	{
@@ -70,8 +70,8 @@ void *get_in_addr(struct sockaddr *sa)
 }
 
 // Translates user's command into this program's integer representation
-int commandTranslate(char *command)
-{
+int commandTranslate(char *command) {
+
 	if (strcmp(command,"CONNECT") == 0)
 	{
 		return 1;
@@ -96,13 +96,81 @@ int commandTranslate(char *command)
 	{
 		return 6;
 	}
+	else if (strcmp(command, "EXIT") == 0)
+	{
+		return 7;
+	}
 	else
 	{
 		return -1;
 	}
 }
 
-int main(int argc, char *argv[])
+// Connect to TCR server
+int connectToHost( struct addrinfo *hints, struct addrinfo **servinfo, int *error_status, char *hostname, struct addrinfo **p, int *sockfd) {
+
+	// [ Load up address structs with getaddrinfo() ]
+	//=================================================================================
+
+	// Setup values in hints
+	memset(hints, 0, sizeof *hints);	// make sure the struct is empty
+	(*hints).ai_family = AF_UNSPEC;		// don't care if IPv4 (AF_INET) or IPv6 (AF_INET6)
+	(*hints).ai_socktype = SOCK_STREAM;	// use TCP stream sockets
+	
+	// Call getaddrinfo() to setup the structures in hints
+	// - error: getaddrinfo() returns non-zero
+	// - success: *servinfo will point to a linked list of struct addrinfo,
+	//			  each of which contains a struct sockaddr to be used later
+	if (((*error_status) = getaddrinfo(hostname, PORT, hints, &(*servinfo))) != 0) 
+	{
+		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror((*error_status)));
+		return 1;
+	}
+
+	//=================================================================================
+
+
+	// [ Make a socket, connect() to destination ]
+	//=================================================================================
+
+	// Loop through all the results in *servinfo and bind to the first we can
+	for((*p) = (*servinfo); (*p) != NULL; (*p) = (*p)->ai_next) 
+	{
+		// Make a socket
+		// - assign a socket descriptor to sockfd on success, -1 on error
+		if (((*sockfd) = socket((*p)->ai_family, (*p)->ai_socktype, (*p)->ai_protocol)) == -1) 
+		{
+			perror("client: socket");
+			continue;
+		}
+
+		// Connect to a remote host in the destination port and IP address
+		// - returns -1 on error and sets errno to the error's value
+		if (connect((*sockfd), (*p)->ai_addr, (*p)->ai_addrlen) == -1) 
+		{
+			close((*sockfd));
+			perror("client: connect");
+			continue;
+		}
+
+		break;
+	}
+
+	// Free the linked list when all done with *servinfo
+	freeaddrinfo(*servinfo);
+
+	// If *servinfo is empty, then fail to connect
+	if ((*p) == NULL) 
+	{
+		fprintf(stderr, "client: failed to connect\n");
+		return 2;
+	}
+
+	//=================================================================================
+
+}
+
+int main(/*int argc, char *argv[]*/)
 {
 	// Socket file descriptor for communicating to remote host
 	int sockfd;
@@ -119,84 +187,23 @@ int main(int argc, char *argv[])
 	// Will hold the error state when getaddrinfo() is called
 	int error_status;
 
+	// Will hold the server's hostname
+	char hostname[50];
+
 	// Space to hold the IPv6 string
 	char s[INET6_ADDRSTRLEN];
 
 	// Buffer to read the information into
 	char buf[MAXDATASIZE];
 
+	// 1 if already connected to server, 0 otherwise
+	int serverconnect = 0;
 
 	// Trigger error if client was incorrectly run
-	if (argc != 2) 
-	{
+	/*if (argc != 2) {
 		fprintf(stderr,"usage: client hostname\n");
 		exit(1);
-	}
-
-
-	// [ Load up address structs with getaddrinfo() ]
-	//=================================================================================
-
-	// Setup values in hints
-	memset(&hints, 0, sizeof hints);	// make sure the struct is empty
-	hints.ai_family = AF_UNSPEC;		// don't care if IPv4 (AF_INET) or IPv6 (AF_INET6)
-	hints.ai_socktype = SOCK_STREAM;	// use TCP stream sockets
-	
-	// Call getaddrinfo() to setup the structures in hints
-	// - error: getaddrinfo() returns non-zero
-	// - success: *servinfo will point to a linked list of struct addrinfo,
-	//			  each of which contains a struct sockaddr to be used later
-	if ((error_status = getaddrinfo(argv[1], PORT, &hints, &servinfo)) != 0) 
-	{
-		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(error_status));
-		return 1;
-	}
-
-	//=================================================================================
-
-
-	// [ Make a socket, connect() to destination ]
-	//=================================================================================
-
-	// Loop through all the results in *servinfo and bind to the first we can
-	for(p = servinfo; p != NULL; p = p->ai_next) 
-	{
-		// Make a socket
-		// - assign a socket descriptor to sockfd on success, -1 on error
-		if ((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) 
-		{
-			perror("client: socket");
-			continue;
-		}
-
-		// Connect to a remote host in the destination port and IP address
-		// - returns -1 on error and sets errno to the error's value
-		if (connect(sockfd, p->ai_addr, p->ai_addrlen) == -1) 
-		{
-			close(sockfd);
-			perror("client: connect");
-			continue;
-		}
-
-		break;
-	}
-
-	// Free the linked list when all done with *servinfo
-	freeaddrinfo(servinfo);
-
-	// If *servinfo is empty, then fail to connect
-	if (p == NULL) 
-	{
-		fprintf(stderr, "client: failed to connect\n");
-		return 2;
-	}
-
-	//=================================================================================
-
-
-	// Convert a struct in_addr to numbers-and-dots notation (IP address) for printing
-	inet_ntop(p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr), s, sizeof s);
-	printf("Client: connecting to %s\n", s);
+	}*/
 
 
 	// [ Send data (?) ]
@@ -237,18 +244,37 @@ int main(int argc, char *argv[])
 		// Get command from the user
 		printf("Command: ");
 		scanf("%s", command);
-		switch(commandTranslate(command))
+
+		int exitsignal;
+		switch(exitsignal = commandTranslate(command))
 		{
-			case 1: printf("Entered CONNECT.\n"); break;
-			case 2: printf("Entered CHAT.\n"); break;
-			case 3: printf("Entered QUIT.\n"); break;
-			case 4: printf("Entered TRANSFER.\n"); break;
-			case 5: printf("Entered FLAG.\n"); break;
-			case 6: printf("Entered HELP.\n"); break;
-			default: printf("Invalid command. Enter HELP to get the list of valid commands.\n");
+			case 1:	if (serverconnect) {
+						printf("You are already connected to the TCR server: %s\n\n", s);
+					}
+					else {
+						strncpy(hostname, "francisco-VirtualBox", 50);
+						connectToHost(&hints, &servinfo, &error_status, hostname, &p, &sockfd);
+						
+						// Convert a struct in_addr to numbers-and-dots notation (IP address) for printing
+						inet_ntop(p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr), s, sizeof s);
+						printf("Client: connecting to %s\n\n", s);
+						serverconnect = 1;
+					}
+					break;
+			case 2: printf("Entered CHAT.\n\n"); break;
+			case 3: printf("Entered QUIT.\n\n"); break;
+			case 4: printf("Entered TRANSFER.\n\n"); break;
+			case 5: printf("Entered FLAG.\n\n"); break;
+			case 6: printf("Entered HELP.\n\n"); break;
+			case 7: printf("Closing the application...\n\n"); break;
+			default: printf("Invalid command. Enter HELP to get the list of valid commands.\n\n");
+		}
+		
+		if (exitsignal == 7) {
+			break;
 		}
 	}
-	
+
 	// Close the connection on socket descriptor
 	close(sockfd);
 	
