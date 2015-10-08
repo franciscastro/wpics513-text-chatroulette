@@ -1,7 +1,7 @@
 /*
 Authors: Francisco Castro, Antonio Umali
 CS 513 Project 1 - Chat Roulette
-Last modified: 01 Oct 2015
+Last modified: 08 Oct 2015
 
 This is the client process file.
 */
@@ -67,6 +67,39 @@ void *get_in_addr(struct sockaddr *sa)
 
 	// else, sockaddr is IPv6
 	return &(((struct sockaddr_in6*)sa)->sin6_addr);
+}
+
+// Translates user's command into this program's integer representation
+int commandTranslate(char *command)
+{
+	if (strcmp(command,"CONNECT") == 0)
+	{
+		return 1;
+	}
+	else if (strcmp(command, "CHAT") == 0)
+	{
+		return 2;
+	}
+	else if (strcmp(command,"QUIT") == 0)
+	{
+		return 3;
+	}
+	else if (strcmp(command, "TRANSFER") == 0)
+	{
+		return 4;
+	}
+	else if (strcmp(command, "FLAG") == 0)
+	{
+		return 5;
+	}
+	else if (strcmp(command, "HELP") == 0)
+	{
+		return 6;
+	}
+	else
+	{
+		return -1;
+	}
 }
 
 int main(int argc, char *argv[])
@@ -169,12 +202,14 @@ int main(int argc, char *argv[])
 	// [ Send data (?) ]
 	//=================================================================================
 
+	/*
 	printf("sending to %i\n", sockfd);
 	char msg[5] = "hello";
 	printf("msg is %s\n", msg);
 	int sent = send(sockfd, msg, strlen(msg) + 1, 0);
 
 	printf("data sent? %i\n", sent != -1);
+	*/
 
 	// sendall(sockfd, msg, sizeof msg);
 
@@ -182,6 +217,7 @@ int main(int argc, char *argv[])
 
 
 	// Receive data: recv() returns the number of bytes actually read into the buffer, or -1 on error
+	/*
 	if ((numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0)) == -1) 
 	{
 		perror("recv");
@@ -191,6 +227,27 @@ int main(int argc, char *argv[])
 	// Output the data received
 	buf[numbytes] = '\0';					// Terminate string
 	printf("Client: received '%s'\n",buf);	// Print data received
+	*/
+
+	char command[20];	// For receiving commands from user
+
+	// Main process loop for client
+	while(1) 
+	{
+		// Get command from the user
+		printf("Command: ");
+		scanf("%s", command);
+		switch(commandTranslate(command))
+		{
+			case 1: printf("Entered CONNECT.\n"); break;
+			case 2: printf("Entered CHAT.\n"); break;
+			case 3: printf("Entered QUIT.\n"); break;
+			case 4: printf("Entered TRANSFER.\n"); break;
+			case 5: printf("Entered FLAG.\n"); break;
+			case 6: printf("Entered HELP.\n"); break;
+			default: printf("Invalid command. Enter HELP to get the list of valid commands.\n");
+		}
+	}
 	
 	// Close the connection on socket descriptor
 	close(sockfd);
