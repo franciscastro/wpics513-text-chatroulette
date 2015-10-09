@@ -1,7 +1,7 @@
 /*
 Authors: Francisco Castro, Antonio Umali
 CS 513 Project 1 - Chat Roulette
-Last modified: 08 Oct 2015
+Last modified: 09 Oct 2015
 
 Several pieces of code for reference.
 */
@@ -141,5 +141,32 @@ if (p == NULL)
 // Convert a struct in_addr to numbers-and-dots notation (IP address) for printing
 inet_ntop(p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr), s, sizeof s);
 printf("Client: connecting to %s\n", s);
+
+//=================================================================================
+
+
+//=================================================================================
+
+// Trigger error if client was incorrectly run
+if (argc != 2) {
+	fprintf(stderr,"usage: client hostname\n");
+	exit(1);
+}
+
+//=================================================================================
+
+
+// [ Send data (?) ]
+//=================================================================================
+	
+printf("sending to %i\n", sockfd);
+char msg[5] = "hello";
+printf("msg is %s\n", msg);
+int sent = send(sockfd, msg, strlen(msg) + 1, 0);
+
+printf("data sent? %i\n", sent != -1);
+	
+
+// sendall(sockfd, msg, sizeof msg);
 
 //=================================================================================

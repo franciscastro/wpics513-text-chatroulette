@@ -1,7 +1,7 @@
 /*
 Authors: Francisco Castro, Antonio Umali
 CS 513 Project 1 - Chat Roulette
-Last modified: 08 Oct 2015
+Last modified: 09 Oct 2015
 
 This is the client process file.
 */
@@ -27,34 +27,15 @@ This is the client process file.
 
 /*
 TO DO:
-- CONNECT
+- CONNECT [DONE]
 - CHAT
 - QUIT
 - TRANSFER
 - FLAG
 - HELP
+- EXIT [DONE]
+- MESSAGE
 */
-
-int sendall(int s, char *buf, int *len) {
-
-    int total = 0;        // how many bytes we've sent
-    int bytesleft = *len; // how many we have left to send
-    int n;
-
-    while(total < *len) 
-    {
-        n = send(s, buf+total, bytesleft, 0);
-        
-        if (n == -1) { break; }
-        
-        total += n;
-        bytesleft -= n;
-    }
-
-    *len = total; // return number actually sent here
-
-    return n==-1?-1:0; // return -1 on failure, 0 on success
-}
 
 // Get sockaddr, IPv4 or IPv6
 void *get_in_addr(struct sockaddr *sa) {
@@ -107,7 +88,7 @@ int commandTranslate(char *command) {
 }
 
 // Connect to TCR server
-int connectToHost( struct addrinfo *hints, struct addrinfo **servinfo, int *error_status, char *hostname, struct addrinfo **p, int *sockfd) {
+int connectToHost(struct addrinfo *hints, struct addrinfo **servinfo, int *error_status, char *hostname, struct addrinfo **p, int *sockfd) {
 
 	// [ Load up address structs with getaddrinfo() ]
 	//=================================================================================
@@ -170,6 +151,37 @@ int connectToHost( struct addrinfo *hints, struct addrinfo **servinfo, int *erro
 
 }
 
+// Send a message to TCR server
+int sendAllDataToHost(char *msg, int *msglen, int sockfd) {
+
+	int total = 0;				// How many bytes we've sent
+    int bytesleft = *msglen;	// How many we have left to send
+    int n;
+
+    while(total < *msglen) {
+
+        n = send(sockfd, (msg + total), bytesleft, 0);
+        
+        if (n == -1) { break; }
+        
+        total += n;
+        bytesleft -= n;
+
+    }
+
+    *msglen = total;	// Return number actually sent here
+
+	return n == -1 ? -1 : 0;	// Return 0 on success, -1 on failure
+}
+
+// Convert strings to all uppercase
+void allCaps(char *command) {
+	while(*command != '\0') {
+		*command = toupper(*command);
+		command++;
+	}
+}
+
 int main(/*int argc, char *argv[]*/)
 {
 	// Socket file descriptor for communicating to remote host
@@ -196,31 +208,11 @@ int main(/*int argc, char *argv[]*/)
 	// Buffer to read the information into
 	char buf[MAXDATASIZE];
 
+	// Buffer to send a message out
+	char msg[MAXDATASIZE];
+
 	// 1 if already connected to server, 0 otherwise
 	int serverconnect = 0;
-
-	// Trigger error if client was incorrectly run
-	/*if (argc != 2) {
-		fprintf(stderr,"usage: client hostname\n");
-		exit(1);
-	}*/
-
-
-	// [ Send data (?) ]
-	//=================================================================================
-
-	/*
-	printf("sending to %i\n", sockfd);
-	char msg[5] = "hello";
-	printf("msg is %s\n", msg);
-	int sent = send(sockfd, msg, strlen(msg) + 1, 0);
-
-	printf("data sent? %i\n", sent != -1);
-	*/
-
-	// sendall(sockfd, msg, sizeof msg);
-
-	//=================================================================================
 
 
 	// Receive data: recv() returns the number of bytes actually read into the buffer, or -1 on error
@@ -235,45 +227,96 @@ int main(/*int argc, char *argv[]*/)
 	buf[numbytes] = '\0';					// Terminate string
 	printf("Client: received '%s'\n",buf);	// Print data received
 	*/
+	printf("\nText ChatRoulette chat client started.\n\n");
 
-	char command[20];	// For receiving commands from user
+	//=================================================================================
+
+	char command[50];	// For receiving commands from user
+	int exitsignal;		// If user wants to end the application (Command: EXIT, value: 7)
 
 	// Main process loop for client
-	while(1) 
+	printf("Command: "); // Prompt command from the user
+	while(fgets(command, sizeof command, stdin)) 
 	{
-		// Get command from the user
-		printf("Command: ");
-		scanf("%s", command);
+		// Manual removal of newline character
+		int len = strlen(command);
+		if (len > 0 && command[len-1] == '\n') {
+			command[len-1] = '\0';
+		}
+		allCaps(command);	// Convert command to uppercase for consistency
 
-		int exitsignal;
+
+		// Select appropriate action based on command entered
 		switch(exitsignal = commandTranslate(command))
 		{
-			case 1:	if (serverconnect) {
+
+			case 1:	
+					if (serverconnect) {
 						printf("You are already connected to the TCR server: %s\n\n", s);
 					}
 					else {
 						strncpy(hostname, "francisco-VirtualBox", 50);
+						printf("Client: Connecting...\t");
 						connectToHost(&hints, &servinfo, &error_status, hostname, &p, &sockfd);
 						
 						// Convert a struct in_addr to numbers-and-dots notation (IP address) for printing
 						inet_ntop(p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr), s, sizeof s);
-						printf("Client: connecting to %s\n\n", s);
+						printf("Success! Connected to %s [%s]\n\n", hostname, s);
 						serverconnect = 1;
 					}
 					break;
-			case 2: printf("Entered CHAT.\n\n"); break;
-			case 3: printf("Entered QUIT.\n\n"); break;
-			case 4: printf("Entered TRANSFER.\n\n"); break;
-			case 5: printf("Entered FLAG.\n\n"); break;
-			case 6: printf("Entered HELP.\n\n"); break;
-			case 7: printf("Closing the application...\n\n"); break;
+			case 2: 
+					if (serverconnect) {
+						printf("Entered CHAT.\n\n"); 
+					}
+					else {
+						printf("You are not connected to the TCR server. CONNECT first.\n\n");
+					}
+					break;
+			case 3: 
+					if (serverconnect) {
+						printf("Entered QUIT.\n\n"); 
+					}
+					else {
+						printf("You are not connected to the TCR server. CONNECT first.\n\n");
+					}
+					break;
+			case 4: 
+					if (serverconnect) {
+						printf("Entered TRANSFER.\n\n"); 
+					}
+					else {
+						printf("You are not connected to the TCR server. CONNECT first.\n\n");
+					}
+					break;
+			case 5: 
+					if (serverconnect) {
+						printf("Entered FLAG.\n\n"); 
+					}
+					else {
+						printf("You are not connected to the TCR server. CONNECT first.\n\n");
+					}
+					break;
+			case 6: 
+					if (serverconnect) {
+						printf("Entered HELP.\n\n"); 
+					}
+					else {
+						printf("You are not connected to the TCR server. CONNECT first.\n\n");
+					}
+					break;
+			case 7: printf("Closing the chat client...\n\n"); break;
 			default: printf("Invalid command. Enter HELP to get the list of valid commands.\n\n");
 		}
 		
 		if (exitsignal == 7) {
 			break;
 		}
+
+		printf("Command: ");	// Prompt command from the user
 	}
+
+	//=================================================================================
 
 	// Close the connection on socket descriptor
 	close(sockfd);
