@@ -1,13 +1,13 @@
 /*
 Authors: Francisco Castro, Antonio Umali
 CS 513 Project 1 - Chat Roulette
-Last modified: 09 Oct 2015
+Last modified: 10 Oct 2015
 
 This is the TCR client header file.
 */
 
 #define MAXMESSAGESIZE 1024
-#define MAXCOMMANDSIZE 20	
+#define MAXCOMMANDSIZE 20
 
 struct packet {
 	char command[MAXCOMMANDSIZE];
@@ -138,7 +138,7 @@ int connectToHost(char *PORT, struct addrinfo *hints, struct addrinfo **servinfo
 }
 
 // Send a message to TCR server
-int sendDataToHost(struct packet *packet, int sockfd) {
+int sendDataToServer(struct packet *packet, int sockfd) {
 
 	int packetlen = sizeof *packet;
 	int total = 0;				// How many bytes we've sent
@@ -162,6 +162,48 @@ int sendDataToHost(struct packet *packet, int sockfd) {
 	return n == -1 ? -1 : 0;	// Return 0 on success, -1 on failure
 }
 
+int sendFilePackets(int sockfd) {
+
+	// Get file name from user
+	char filename[50];
+	fprintf(stdout, "File to send: ");
+	fgets(filename, sizeof filename, stdin);
+	
+	// Manual removal of newline character
+	int len = strlen(filename);
+	if (len > 0 && filename[len-1] == '\n') {
+		filename[len-1] = '\0';
+	}
+	
+	// Create file pointer
+	FILE *fp = fopen(filename, "rb");
+	
+	// If file does not exist
+	if (fp == NULL) {
+		fprintf(stdout, "File open error. Check your file name.\n");
+		return 1;
+	}
+
+	// file buffer to store chunks of files
+	char filebuff[MAXMESSAGESIZE];
+
+	// Outbound data packet
+	struct packet outbound;
+	strncpy(outbound.command, "TRANSFER", MAXCOMMANDSIZE);
+
+	// Read and send file packets
+	while(!feof(fp)){
+		fread(filebuff, 1, MAXMESSAGESIZE, fp);
+		strncpy(outbound.message, filebuff, MAXMESSAGESIZE);
+		sendDataToServer(&outbound, sockfd);
+	}
+
+	fclose(fp);
+
+	return 0;
+
+}
+
 struct packet createPacket(char *command) {
 
 	struct packet outbound;
@@ -182,6 +224,7 @@ struct packet createPacket(char *command) {
 	}
 	else if (strcmp(command, "TRANSFER") == 0)
 	{
+
 		return outbound;
 	}
 	else if (strcmp(command, "FLAG") == 0)

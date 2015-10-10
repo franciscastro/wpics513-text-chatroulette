@@ -1,7 +1,7 @@
 /*
 Authors: Francisco Castro, Antonio Umali
 CS 513 Project 1 - Chat Roulette
-Last modified: 09 Oct 2015
+Last modified: 10 Oct 2015
 
 This is the TCR client process file.
 */
@@ -72,10 +72,6 @@ int main(/*int argc, char *argv[]*/)
 	// 0, -1, -2, otherwise (see connectToHost())
 	int serverconnect = 0;
 
-	// Stuff for sending data out
-	struct packet toSend;
-	int sent;
-
 
 	// Receive data: recv() returns the number of bytes actually read into the buffer, or -1 on error
 	/*
@@ -94,7 +90,7 @@ int main(/*int argc, char *argv[]*/)
 	//=================================================================================
 
 	char command[50];	// For receiving commands from user
-	int exitsignal;		// If user wants to end the application (Command: EXIT, value: 7)
+	int exitsignal;		// If user wants to end the application (Command: EXIT, value: 8)
 
 	// Main process loop for client
 	printf("\nCommand: "); // Prompt command from the user
@@ -131,8 +127,8 @@ int main(/*int argc, char *argv[]*/)
 			// CHAT
 			case 2: 
 					if (serverconnect > 0) {
-						toSend = createPacket(command);
-						sent = sendDataToHost(&toSend, sockfd);
+						struct packet toSend = createPacket(command);
+						int sent = sendDataToServer(&toSend, sockfd);
 					}
 					else {
 						printf("You are not connected to the TCR server. CONNECT first.\n");
@@ -141,8 +137,8 @@ int main(/*int argc, char *argv[]*/)
 			// QUIT
 			case 3: 
 					if (serverconnect > 0) {
-						toSend = createPacket(command);
-						sent = sendDataToHost(&toSend, sockfd);
+						struct packet toSend = createPacket(command);
+						int sent = sendDataToServer(&toSend, sockfd);
 					}
 					else {
 						printf("You are not connected to the TCR server. CONNECT first.\n");
@@ -151,8 +147,12 @@ int main(/*int argc, char *argv[]*/)
 			// TRANSFER
 			case 4: 
 					if (serverconnect > 0) {
-						toSend = createPacket(command);
-						sent = sendDataToHost(&toSend, sockfd);
+						if (sendFilePackets(sockfd) == 0) {
+							printf("File sent.\n");
+						}
+						else {
+							printf("Failed to send file.\n");
+						}
 					}
 					else {
 						printf("You are not connected to the TCR server. CONNECT first.\n");
@@ -161,8 +161,8 @@ int main(/*int argc, char *argv[]*/)
 			// FLAG
 			case 5: 
 					if (serverconnect > 0) {
-						toSend = createPacket(command);
-						sent = sendDataToHost(&toSend, sockfd);
+						struct packet toSend = createPacket(command);
+						int sent = sendDataToServer(&toSend, sockfd);
 					}
 					else {
 						printf("You are not connected to the TCR server. CONNECT first.\n");
@@ -171,8 +171,8 @@ int main(/*int argc, char *argv[]*/)
 			// HELP
 			case 6: 
 					if (serverconnect > 0) {
-						toSend = createPacket(command);
-						sent = sendDataToHost(&toSend, sockfd);
+						struct packet toSend = createPacket(command);
+						int sent = sendDataToServer(&toSend, sockfd);
 					}
 					else {
 						printf("You are not connected to the TCR server. CONNECT first.\n");
@@ -181,8 +181,8 @@ int main(/*int argc, char *argv[]*/)
 			// MESSAGE
 			case 7: 
 					if (serverconnect > 0) {
-						toSend = createPacket(command);
-						sent = sendDataToHost(&toSend, sockfd);
+						struct packet toSend = createPacket(command);
+						int sent = sendDataToServer(&toSend, sockfd);
 					}
 					else {
 						printf("You are not connected to the TCR server. CONNECT first.\n");
