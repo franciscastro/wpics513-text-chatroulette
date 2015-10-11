@@ -1,18 +1,59 @@
 /*
 Authors: Francisco Castro, Antonio Umali
 CS 513 Project 1 - Chat Roulette
-Last modified: 10 Oct 2015
+Last modified: 11 Oct 2015
 
 This is the TCR client header file.
 */
 
+#include <stdio.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <signal.h>
+#include <fcntl.h>
+#include <sys/time.h>
+#include <sys/types.h>
+
+
 #define MAXMESSAGESIZE 1024
 #define MAXCOMMANDSIZE 20
 
+// Socket file descriptor for communicating to remote host
+int sockfd;
+
+// 1 if already connected to server, 
+// 0, -1, -2, otherwise (see connectToHost())
+int isconnected = 0;
+
+
 struct packet {
-	char command[MAXCOMMANDSIZE];
-	char message[MAXMESSAGESIZE];
+	char command[MAXCOMMANDSIZE];	// Command triggered
+	char message[MAXMESSAGESIZE];	// Data
 };
+
+struct threaddata {
+	pthread_t thread_ID;	// This thread's pointer
+};
+
+void *get_in_addr(struct sockaddr *sa);
+int commandTranslate(char *command);
+int connectToHost(char *PORT, struct addrinfo *hints, struct addrinfo **servinfo, int *error_status, char *hostname, struct addrinfo **p);
+void *receiver(void *param);
+int sendDataToServer(struct packet *packet);
+int sendFilePackets();
+struct packet createPacket(char *command);
+void allCaps(char *command);
+
+//=================================================================================
+
 
 // Get sockaddr, IPv4 or IPv6
 void *get_in_addr(struct sockaddr *sa) {
@@ -71,8 +112,9 @@ int commandTranslate(char *command) {
 // Connect to TCR server
 // Returns: -1 on getaddrinfo() fail
 //			-2 on fail to connect a socket to remote host
+//			-3 on fail to create thread for recv()ing data
 //			 1 on successful connect
-int connectToHost(char *PORT, struct addrinfo *hints, struct addrinfo **servinfo, int *error_status, char *hostname, struct addrinfo **p, int *sockfd) {
+int connectToHost(char *PORT, struct addrinfo *hints, struct addrinfo **servinfo, int *error_status, char *hostname, struct addrinfo **p) {
 
 	// [ Load up address structs with getaddrinfo() ]
 	//=================================================================================
@@ -103,7 +145,7 @@ int connectToHost(char *PORT, struct addrinfo *hints, struct addrinfo **servinfo
 	{
 		// Make a socket
 		// - assign a socket descriptor to sockfd on success, -1 on error
-		if (((*sockfd) = socket((*p)->ai_family, (*p)->ai_socktype, (*p)->ai_protocol)) == -1) 
+		if ((sockfd = socket((*p)->ai_family, (*p)->ai_socktype, (*p)->ai_protocol)) == -1) 
 		{
 			perror("Client socket");
 			continue;
@@ -111,9 +153,9 @@ int connectToHost(char *PORT, struct addrinfo *hints, struct addrinfo **servinfo
 
 		// Connect to a remote host in the destination port and IP address
 		// - returns -1 on error and sets errno to the error's value
-		if (connect((*sockfd), (*p)->ai_addr, (*p)->ai_addrlen) == -1) 
+		if (connect(sockfd, (*p)->ai_addr, (*p)->ai_addrlen) == -1) 
 		{
-			close((*sockfd));
+			close(sockfd);
 			perror("Client connect");
 			continue;
 		}
@@ -131,14 +173,80 @@ int connectToHost(char *PORT, struct addrinfo *hints, struct addrinfo **servinfo
 		return -2;
 	}
 
+	// Create pthread for recv()ing data from the socket
+	struct threaddata newthread;
+	if(pthread_create(&newthread.thread_ID, NULL, receiver, (void *)&newthread)) 
+	{
+		fprintf(stderr, "Error creating recv() thread. Try connecting again.\n");
+		close(sockfd);
+		return -3;
+	}
+
+	// Prompt client that it is now waiting to recv() on pthread
+	fprintf(stdout, "Now waiting for data on [%i]...\n", sockfd);
+
+	// Set isconnected flag since client successfully connected to server
+	isconnected = 1;
+
 	return 1;
 
 	//=================================================================================
 
 }
 
+// For recv()ing messages from the socket
+void *receiver(void *param) {
+	
+	int recvd;
+	struct packet msgrecvd;
+
+	// While connection with server is alive
+	while(isconnected) {
+
+		// recv() data from the socket
+		recvd = recv(sockfd, (void *)&msgrecvd, sizeof(struct packet), 0);
+		
+		if (!recvd) {
+			fprintf(stderr, "Server connection lost. \n");
+			isconnected = 0;
+			close(sockfd);
+			break;
+		}
+
+		if (recvd > 0) {
+			fprintf(stdout, "%s\n", msgrecvd.message);
+		}
+
+		// Make sure the struct is empty
+		memset(&msgrecvd, 0, sizeof(struct packet));
+
+	}
+
+}
+
+// Handling recv()ed messages from the socket
+void receivedDataHandler(struct packet *msgrecvd) {
+
+	if (strcmp((*msgrecvd).command, "ACKN") == 0) {
+		fprintf(stdout, "You are added in the chat queue\n");
+	}
+	else if (strcmp((*msgrecvd).command, "IN SESSION") == 0) {
+		fprintf(stdout, "Now on a channel with: %s\n", (*msgrecvd).message);
+	}
+	else if (strcmp((*msgrecvd).command, "QUIT") == 0) {
+		fprintf(stdout, "You have quit the channel \n");
+	}
+	else if (strcmp((*msgrecvd).command, "HELP") == 0) {
+		fprintf(stdout, "Commands available:\n %s\n", (*msgrecvd).message );
+	}
+	else if (strcmp((*msgrecvd).command, "MESSAGE") == 0) {
+		fprintf(stdout, "[ ]: %s\n", (*msgrecvd).message );
+	}
+
+}
+
 // Send a message to TCR server
-int sendDataToServer(struct packet *packet, int sockfd) {
+int sendDataToServer(struct packet *packet) {
 
 	int packetlen = sizeof *packet;
 	int total = 0;				// How many bytes we've sent
@@ -162,7 +270,7 @@ int sendDataToServer(struct packet *packet, int sockfd) {
 	return n == -1 ? -1 : 0;	// Return 0 on success, -1 on failure
 }
 
-int sendFilePackets(int sockfd) {
+int sendFilePackets() {
 
 	// Get file name from user
 	char filename[50];
@@ -187,15 +295,20 @@ int sendFilePackets(int sockfd) {
 	// file buffer to store chunks of files
 	char filebuff[MAXMESSAGESIZE];
 
-	// Outbound data packet
-	struct packet outbound;
-	strncpy(outbound.command, "TRANSFER", MAXCOMMANDSIZE);
-
 	// Read and send file packets
 	while(!feof(fp)){
-		fread(filebuff, 1, MAXMESSAGESIZE, fp);
-		strncpy(outbound.message, filebuff, MAXMESSAGESIZE);
-		sendDataToServer(&outbound, sockfd);
+
+		// Outbound data packet
+		struct packet outbound;
+		strncpy(outbound.command, "TRANSFER", MAXCOMMANDSIZE);
+
+		// Read data from file
+		fread(outbound.message, 1, MAXMESSAGESIZE, fp);
+		
+		// Send data to server
+		sendDataToServer(&outbound);
+
+		memset(&outbound, 0, sizeof(struct packet));	// Empty the struct
 	}
 
 	fclose(fp);
@@ -222,11 +335,6 @@ struct packet createPacket(char *command) {
 	{
 		return outbound;
 	}
-	else if (strcmp(command, "TRANSFER") == 0)
-	{
-
-		return outbound;
-	}
 	else if (strcmp(command, "FLAG") == 0)
 	{
 		return outbound;
@@ -237,9 +345,16 @@ struct packet createPacket(char *command) {
 	}
 	else if (strcmp(command, "MESSAGE") == 0)
 	{
-		fprintf(stdout, "Message: ");
+		fprintf(stdout, "[ You ]: ");
 		fgets(outbound.message, sizeof outbound.message, stdin);
-		fprintf(stdout, "Your message: %s", outbound.message);
+
+		// Manual removal of newline character
+		int len = strlen(outbound.message);
+		if (len > 0 && outbound.message[len-1] == '\n') {
+			outbound.message[len-1] = '\0';
+		}
+
+		//fprintf(stdout, "Your message: %s", outbound.message);
 		return outbound;
 	}
 

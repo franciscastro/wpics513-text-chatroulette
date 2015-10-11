@@ -1,26 +1,11 @@
 /*
 Authors: Francisco Castro, Antonio Umali
 CS 513 Project 1 - Chat Roulette
-Last modified: 10 Oct 2015
+Last modified: 11 Oct 2015
 
 This is the TCR client process file.
 */
 
-#include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <errno.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <sys/wait.h>
-#include <signal.h>
-#include <fcntl.h>
-#include <sys/time.h>
-#include <sys/types.h>
 #include "tcr_client_header.h"
 
 #define PORT "3490" // the port client will be connecting to
@@ -41,8 +26,6 @@ TO DO:
 
 int main(/*int argc, char *argv[]*/)
 {
-	// Socket file descriptor for communicating to remote host
-	int sockfd;
 
 	// Number of bytes received from the recv() call
 	int numbytes;
@@ -68,10 +51,6 @@ int main(/*int argc, char *argv[]*/)
 	// Buffer to send a message out
 	char msg[MAXDATASIZE];
 
-	// 1 if already connected to server, 
-	// 0, -1, -2, otherwise (see connectToHost())
-	int serverconnect = 0;
-
 
 	// Receive data: recv() returns the number of bytes actually read into the buffer, or -1 on error
 	/*
@@ -93,7 +72,6 @@ int main(/*int argc, char *argv[]*/)
 	int exitsignal;		// If user wants to end the application (Command: EXIT, value: 8)
 
 	// Main process loop for client
-	printf("\nCommand: "); // Prompt command from the user
 	while(fgets(command, sizeof command, stdin)) 
 	{
 		// Manual removal of newline character
@@ -109,95 +87,99 @@ int main(/*int argc, char *argv[]*/)
 		{
 			// CONNECT
 			case 1:	
-					if (serverconnect > 0) {
+					if (isconnected > 0) {
 						printf("You are already connected to the TCR server: %s\n", s);
 					}
 					else {
 						strncpy(hostname, "francisco-VirtualBox", 50);
-						fprintf(stdout, "\nClient: Connecting...\n");
-						serverconnect = connectToHost(PORT, &hints, &servinfo, &error_status, hostname, &p, &sockfd);
+						fprintf(stdout, "Client: Connecting...\n");
+						isconnected = connectToHost(PORT, &hints, &servinfo, &error_status, hostname, &p);
 						
-						if (serverconnect > 0) {
+						if (isconnected > 0) {
 							// Convert a struct in_addr to numbers-and-dots notation (IP address) for printing
 							inet_ntop(p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr), s, sizeof s);
-							fprintf(stdout, "Success! Connected to %s [%s]\n", hostname, s);
+							fprintf(stdout, "Success! Connected to %s [%s]\n\n", hostname, s);
 						}
 					}
 					break;
 			// CHAT
 			case 2: 
-					if (serverconnect > 0) {
+					if (isconnected > 0) {
 						struct packet toSend = createPacket(command);
-						int sent = sendDataToServer(&toSend, sockfd);
+						int sent = sendDataToServer(&toSend);
+						memset(&toSend, 0, sizeof(struct packet));	// Empty the struct
 					}
 					else {
-						printf("You are not connected to the TCR server. CONNECT first.\n");
+						printf("You are not connected to the TCR server. CONNECT first.\n\n");
 					}
 					break;
 			// QUIT
 			case 3: 
-					if (serverconnect > 0) {
+					if (isconnected > 0) {
 						struct packet toSend = createPacket(command);
-						int sent = sendDataToServer(&toSend, sockfd);
+						int sent = sendDataToServer(&toSend);
+						memset(&toSend, 0, sizeof(struct packet));	// Empty the struct
 					}
 					else {
-						printf("You are not connected to the TCR server. CONNECT first.\n");
+						printf("You are not connected to the TCR server. CONNECT first.\n\n");
 					}
 					break;
 			// TRANSFER
 			case 4: 
-					if (serverconnect > 0) {
+					if (isconnected > 0) {
 						if (sendFilePackets(sockfd) == 0) {
-							printf("File sent.\n");
+							printf("File sent.\n\n");
 						}
 						else {
-							printf("Failed to send file.\n");
+							printf("Failed to send file.\n\n");
 						}
 					}
 					else {
-						printf("You are not connected to the TCR server. CONNECT first.\n");
+						printf("You are not connected to the TCR server. CONNECT first.\n\n");
 					}
 					break;
 			// FLAG
 			case 5: 
-					if (serverconnect > 0) {
+					if (isconnected > 0) {
 						struct packet toSend = createPacket(command);
-						int sent = sendDataToServer(&toSend, sockfd);
+						int sent = sendDataToServer(&toSend);
+						memset(&toSend, 0, sizeof(struct packet));	// Empty the struct
 					}
 					else {
-						printf("You are not connected to the TCR server. CONNECT first.\n");
+						printf("You are not connected to the TCR server. CONNECT first.\n\n");
 					}
 					break;
 			// HELP
 			case 6: 
-					if (serverconnect > 0) {
+					if (isconnected > 0) {
 						struct packet toSend = createPacket(command);
-						int sent = sendDataToServer(&toSend, sockfd);
+						int sent = sendDataToServer(&toSend);
+						memset(&toSend, 0, sizeof(struct packet));	// Empty the struct
 					}
 					else {
-						printf("You are not connected to the TCR server. CONNECT first.\n");
+						printf("You are not connected to the TCR server. CONNECT first.\n\n");
 					}
 					break;
 			// MESSAGE
 			case 7: 
-					if (serverconnect > 0) {
+					if (isconnected > 0) {
 						struct packet toSend = createPacket(command);
-						int sent = sendDataToServer(&toSend, sockfd);
+						int sent = sendDataToServer(&toSend);
+						memset(&toSend, 0, sizeof(struct packet));	// Empty the struct
 					}
 					else {
-						printf("You are not connected to the TCR server. CONNECT first.\n");
+						printf("You are not connected to the TCR server. CONNECT first.\n\n");
 					}
 					break;
 			// EXIT
 			case 8: printf("Closing the chat client...\n"); break;
-			default: printf("Invalid command. Enter HELP to get the list of valid commands.\n");
+			default: printf("Invalid command. Enter HELP to get the list of valid commands.\n\n");
 		}
 		
 		if (exitsignal == 8) {
 			break;
 		}
 
-		printf("\nCommand: ");	// Prompt command from the user
 	}
 
 	//=================================================================================
