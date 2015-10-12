@@ -81,6 +81,35 @@ void *get_in_addr(struct sockaddr *sa) {
 	return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
+// Get server hostname from file HOSTNAME
+// Returns 1 on success, 0 on error
+int fetchServerHostname(char *hostname) {
+
+	char hostfile[] = "HOSTNAME";
+
+	// Create file pointer
+	FILE *fp = fopen(hostfile, "rb");
+	
+	// If file does not exist
+	if (fp == NULL) {
+		fprintf(stdout, "File open error. Make sure HOSTNAME file exists.\n\n");
+		return 0;
+	}
+
+	while (!feof(fp)) {
+		fread(hostname, 1, filesize(hostfile), fp);
+	}
+
+	// Manual removal of newline character
+	int len = strlen(hostname);
+	if (len > 0 && hostname[len-1] == '\n') {
+		hostname[len-1] = '\0';
+	}
+
+	fclose(fp);
+	return 1;
+}
+
 // Translates user's command into this program's integer representation
 int commandTranslate(char *command) {
 

@@ -57,6 +57,7 @@ int main(/*int argc, char *argv[]*/)
 
 	char command[MAXCOMMANDSIZE];	// For receiving commands from user
 	int exitsignal;		// If user wants to end the application (Command: EXIT, value: 8)
+	
 
 	// Main process loop for client
 	while(fgets(command, sizeof command, stdin)) 
@@ -77,7 +78,13 @@ int main(/*int argc, char *argv[]*/)
 						printf("You are already connected to the TCR server: %s\n", s);
 					}
 					else {
-						strncpy(hostname, "francisco-VirtualBox", 50);
+						//strncpy(hostname, "francisco-VirtualBox", 50);
+
+						// Get server hostname from file HOSTNAME
+						if (fetchServerHostname(hostname) == 0) {
+							break;
+						}
+
 						fprintf(stdout, "Client: Connecting...\n");
 						isconnected = connectToHost(PORT, &hints, &servinfo, &error_status, hostname, &p);
 						
