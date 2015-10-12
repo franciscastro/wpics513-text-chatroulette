@@ -64,6 +64,6 @@ b. To run the Text ChatRoulette client, open a terminal, navigate to the directo
 
 ./client
 
-c. You may run multiple instances of the client to connect to the server. Just copy the directory containing all the project files into another directory and run the client from there.
+c. You may run multiple instances of the client to connect to the server. Just copy the directory containing all the project files and executable files into another directory and run the client from there.
 
 ======================================================================================
