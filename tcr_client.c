@@ -57,7 +57,7 @@ int main(/*int argc, char *argv[]*/)
 
 	char command[MAXCOMMANDSIZE];	// For receiving commands from user
 	int exitsignal;		// If user wants to end the application (Command: EXIT, value: 8)
-	
+
 
 	// Main process loop for client
 	while(fgets(command, sizeof command, stdin)) 
@@ -201,6 +201,24 @@ int main(/*int argc, char *argv[]*/)
 					break;
 			// EXIT
 			case 8: printf("Closing the chat client...\n"); break;
+			// CONFIRM
+			case 9: 
+					if (isconnected > 0) {
+						struct packet toSend;
+
+						if(createPacket(command, &toSend) == -1) {
+							fprintf(stderr, "Can't create data to send. Try again.\n");
+						}
+						else {
+							int sent = sendDataToServer(&toSend);
+						}
+
+						memset(&toSend, 0, sizeof(struct packet));	// Empty the struct
+					}
+					else {
+						printf("You are not connected to the TCR server. CONNECT first.\n\n");
+					}
+					break;
 			default: printf("Invalid command. Enter HELP to get the list of valid commands.\n\n");
 		}
 		

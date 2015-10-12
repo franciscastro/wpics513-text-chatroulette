@@ -114,42 +114,17 @@ int fetchServerHostname(char *hostname) {
 // Translates user's command into this program's integer representation
 int commandTranslate(char *command) {
 
-	if (strcmp(command,"CONNECT") == 0)
-	{
-		return 1;
-	}
-	else if (strcmp(command, "CHAT") == 0)
-	{
-		return 2;
-	}
-	else if (strcmp(command,"QUIT") == 0)
-	{
-		return 3;
-	}
-	else if (strcmp(command, "TRANSFER") == 0)
-	{
-		return 4;
-	}
-	else if (strcmp(command, "FLAG") == 0)
-	{
-		return 5;
-	}
-	else if (strcmp(command, "HELP") == 0)
-	{
-		return 6;
-	}
-	else if (strcmp(command, "MESSAGE") == 0)
-	{
-		return 7;
-	}
-	else if (strcmp(command, "EXIT") == 0)
-	{
-		return 8;
-	}
-	else
-	{
-		return -1;
-	}
+	if (strcmp(command,"CONNECT") == 0) { return 1; }
+	else if (strcmp(command, "CHAT") == 0) { return 2; }
+	else if (strcmp(command,"QUIT") == 0) { return 3; }
+	else if (strcmp(command, "TRANSFER") == 0) { return 4; }
+	else if (strcmp(command, "FLAG") == 0) { return 5; }
+	else if (strcmp(command, "HELP") == 0) { return 6; }
+	else if (strcmp(command, "MESSAGE") == 0) { return 7; }
+	else if (strcmp(command, "EXIT") == 0) { return 8; }
+	else if (strcmp(command, "CONFIRM") == 0) { return 9; }
+	else { return -1; }
+
 }
 
 // Connect to TCR server
@@ -534,6 +509,10 @@ int createPacket(const char *command, struct packet *toSend) {
 
 		//fprintf(stdout, "Your message: %s", outbound.message);
 		strncpy(outbound.alias,alias,MAXCOMMANDSIZE);
+		(*toSend) = outbound;
+		return 1;
+	}
+	else if (strcmp(command, "CONFIRM") == 0) {
 		(*toSend) = outbound;
 		return 1;
 	}
