@@ -26,7 +26,6 @@ TO DO:
 
 int main(/*int argc, char *argv[]*/)
 {
-
 	// Number of bytes received from the recv() call
 	int numbytes;
 
@@ -52,23 +51,11 @@ int main(/*int argc, char *argv[]*/)
 	char msg[MAXDATASIZE];
 
 
-	// Receive data: recv() returns the number of bytes actually read into the buffer, or -1 on error
-	/*
-	if ((numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0)) == -1) 
-	{
-		perror("recv");
-		exit(1);
-	}
-
-	// Output the data received
-	buf[numbytes] = '\0';					// Terminate string
-	printf("Client: received '%s'\n",buf);	// Print data received
-	*/
 	printf("\nText ChatRoulette chat client started.\n\n");
 
 	//=================================================================================
 
-	char command[50];	// For receiving commands from user
+	char command[MAXCOMMANDSIZE];	// For receiving commands from user
 	int exitsignal;		// If user wants to end the application (Command: EXIT, value: 8)
 
 	// Main process loop for client
@@ -80,7 +67,6 @@ int main(/*int argc, char *argv[]*/)
 			command[len-1] = '\0';
 		}
 		allCaps(command);	// Convert command to uppercase for consistency
-
 
 		// Select appropriate action based on command entered
 		switch(exitsignal = commandTranslate(command))
@@ -108,7 +94,7 @@ int main(/*int argc, char *argv[]*/)
 						struct packet toSend;
 
 						if(createPacket(command, &toSend) == -1) {
-							fprintf(stderr, "Can't create data to send. Try again.\n");
+							fprintf(stderr, "Try again.\n\n");
 						}
 						else {
 							int sent = sendDataToServer(&toSend);

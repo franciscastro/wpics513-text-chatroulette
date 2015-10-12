@@ -34,6 +34,13 @@ int sockfd;
 // 0, -1, -2, otherwise (see connectToHost())
 int isconnected = 0;
 
+// This client's alias
+char alias[MAXCOMMANDSIZE];	
+
+// For non-user special command cases
+// 1 - FILE_ACCEPT
+int specialcommand = 0;
+
 
 struct packet {
 	char command[MAXCOMMANDSIZE];	// Command triggered
@@ -233,16 +240,6 @@ void *receiver(void *param) {
 				// First file packet received
 				if (isReceiving == 0) {
 
-					//fprintf(stdout, ">>>>> ISRECEIVING = 0\n");
-
-					// For getting file name from user
-					//fprintf(stdout, "Save file as: ");
-					//fgets(fileRecvName, sizeof fileRecvName, stdin);
-
-					// Manual removal of newline character
-					//int len = strlen(fileRecvName);
-					//if (len > 0 && fileRecvName[len-1] == '\n') { fileRecvName[len-1] = '\0'; }
-
 					strncpy(fileRecvName, msgrecvd.filename, MAXCOMMANDSIZE);
 					fprintf(stdout, "Downloading %s...\n", fileRecvName);
 
@@ -250,7 +247,7 @@ void *receiver(void *param) {
 					fp = fopen(fileRecvName, "ab");
 					if (fp == NULL) { fprintf(stdout, "File write error. Check your file name.\n"); }
 
-					fwrite(msgrecvd.message, 1, /*sizeof(msgrecvd.message)*/msgrecvd.filebytesize, fp);
+					fwrite(msgrecvd.message, 1, msgrecvd.filebytesize, fp);
 
 					// Change status to currently receiving file data
 					isReceiving = 1;
@@ -258,7 +255,7 @@ void *receiver(void *param) {
 				// Rest of the file packets
 				else {
 					//fprintf(stdout, ">>>>> REST OF THE FILE\n");
-					fwrite(msgrecvd.message, 1, /*sizeof(msgrecvd.message)*/msgrecvd.filebytesize, fp);
+					fwrite(msgrecvd.message, 1, msgrecvd.filebytesize, fp);
 				}
 
 			}
@@ -305,78 +302,8 @@ void receivedDataHandler(struct packet *msgrecvd) {
 	else if (strcmp((*msgrecvd).command, "MESSAGE") == 0) {
 		fprintf(stdout, "[ %s ]: %s\n", (*msgrecvd).alias, (*msgrecvd).message );
 	}
-	else if (strcmp((*msgrecvd).command, "FILE_ACCEPT") == 0) {
-
-		struct packet toSend;
-
-		// User either accepts or rejects the request
-		char fileAccept[MAXCOMMANDSIZE];
-		fprintf(stdout, "[ %s ] wants to send a file (%s). Receive file? \"y\" (yes) \"n\" (no): ", (*msgrecvd).alias, (*msgrecvd).filename );
-		fgets(fileAccept, sizeof fileAccept, stdin);
-
-		// Manual removal of newline character
-		int len = strlen(fileAccept);
-		if (len > 0 && fileAccept[len-1] == '\n') { fileAccept[len-1] = '\0'; }
-		allCaps(fileAccept);
-
-		// If accept
-		if ( strcmp(fileAccept,"Y") == 0 ) {
-			
-			strncpy(toSend.message, fileAccept, MAXMESSAGESIZE);
-
-			if(createPacket("FILE_RESPONSE", &toSend) == -1) { fprintf(stderr, "Error: Can't create data to send. \n"); }
-			else { int sent = sendDataToServer(&toSend); }
-		}
-		// If reject or invalid response
-		// ( fileaccept == NULL || strcmp(fileaccept,"\n") == 0 || !(strcmp(fileaccept,"Y") == 0) || !(strcmp(fileaccept,"N") == 0) )
-		else {
-			
-			if ( strcmp(fileAccept,"N") == 0 ) { fprintf(stdout, "You've rejected file transfer.\n"); }
-			else { fprintf(stdout, "Invalid response.\n"); }
-
-			strncpy(toSend.message, "N", MAXMESSAGESIZE);
-
-			if(createPacket("FILE_RESPONSE", &toSend) == -1) { fprintf(stderr, "Error: Can't create data to send. \n"); }
-			else { int sent = sendDataToServer(&toSend); }
-		}
-
-		memset(&toSend, 0, sizeof(struct packet));	// Empty the struct
-	}
-	else if (strcmp((*msgrecvd).command, "CHAT_PROMPT") == 0) {
-
-		struct packet toSend;
-
-		// User either accepts or rejects the request
-		char chatAccept[MAXCOMMANDSIZE];
-		fprintf(stdout, "[ %s ] wants to chat. Open channel? \"y\" (yes) \"n\" (no): ", (*msgrecvd).alias );
-		fgets(chatAccept, sizeof chatAccept, stdin);
-
-		// Manual removal of newline character
-		int len = strlen(chatAccept);
-		if (len > 0 && chatAccept[len-1] == '\n') { chatAccept[len-1] = '\0'; }
-		allCaps(chatAccept);
-
-		// If accept
-		if ( strcmp(chatAccept,"Y") == 0 ) {
-
-			strncpy(toSend.message, chatAccept, MAXMESSAGESIZE);
-
-			if(createPacket("CHAT_RESPONSE", &toSend) == -1) { fprintf(stderr, "Error: Can't create data to send. \n"); }
-			else { int sent = sendDataToServer(&toSend); }
-		}
-		// If reject or invalid response
-		else {
-
-			if ( strcmp(chatAccept,"N") == 0 ) { fprintf(stdout, "You've rejected request to chat.\n"); }
-			else { fprintf(stdout, "Invalid response.\n"); }
-
-			strncpy(toSend.message, "N", MAXMESSAGESIZE);
-
-			if(createPacket("CHAT_RESPONSE", &toSend) == -1) { fprintf(stderr, "Error: Can't create data to send. \n"); }
-			else { int sent = sendDataToServer(&toSend); }
-		}
-
-		memset(&toSend, 0, sizeof(struct packet));	// Empty the struct
+	else if (strcmp((*msgrecvd).command, "CHAT_ACK") == 0) {
+		fprintf(stdout, "Now chatting with %s\n", (*msgrecvd).alias);
 	}
 
 }
@@ -493,40 +420,50 @@ int createPacket(const char *command, struct packet *toSend) {
 
 	struct packet outbound;
 
-	// Put command type in packet
-	strncpy(outbound.command, command, MAXCOMMANDSIZE);
+	// Default values to avoid garbage data
+	strncpy(outbound.command, command, MAXCOMMANDSIZE);	// Put command type in packet
+	strncpy(outbound.message, "message", MAXMESSAGESIZE);
+	strncpy(outbound.alias, "alias", MAXCOMMANDSIZE);
+	strncpy(outbound.filename, "filename", MAXCOMMANDSIZE);
+	outbound.filebytesize = 0;
 
 	if (strcmp(command,"CONNECT") == 0) {
 		(*toSend) = outbound;
 		return 1;
 	}
 	else if (strcmp(command, "CHAT") == 0) {	
+		
 		// For getting alias from user
 		char useralias[MAXCOMMANDSIZE];
-		fprintf(stdout, "Your alias: ");
+		fprintf(stdout, "Enter alias: ");
+		fgets(useralias, sizeof useralias, stdin);
 
-		// If invalid alias
-		if(fgets(useralias, sizeof useralias, stdin) == NULL) {
-			fprintf(stderr, "Problematic alias structure: %s\n", strerror(errno));
-			return -1;
-		}
-		
 		// Manual removal of newline character
 		int len = strlen(useralias);
 		if (len > 0 && useralias[len-1] == '\n') { useralias[len-1] = '\0'; }
 
+		// If invalid alias
+		if(useralias == NULL || strcmp(useralias," ") == 0 || strcmp(useralias,"\n") == 0) {
+			fprintf(stderr, "Invalid alias structure.\n");
+			return -1;
+		}
+
 		// Put alias in packet
-		strncpy(outbound.message, useralias, MAXMESSAGESIZE);
 		strncpy(outbound.alias, useralias, MAXCOMMANDSIZE);
+
+		// Put alias in global
+		strncpy(alias, useralias, MAXCOMMANDSIZE);
 
 		(*toSend) = outbound;
 		return 1;
 	}
 	else if (strcmp(command,"QUIT") == 0) {
+		strncpy(outbound.alias, alias, MAXCOMMANDSIZE);
 		(*toSend) = outbound;
 		return 1;
 	}
 	else if (strcmp(command, "FLAG") == 0) {
+		strncpy(outbound.alias, alias, MAXCOMMANDSIZE);
 		(*toSend) = outbound;
 		return 1;
 	}
@@ -544,24 +481,8 @@ int createPacket(const char *command, struct packet *toSend) {
 		if (len > 0 && outbound.message[len-1] == '\n') { outbound.message[len-1] = '\0'; }
 
 		//fprintf(stdout, "Your message: %s", outbound.message);
+		strncpy(outbound.alias,alias,MAXCOMMANDSIZE);
 		(*toSend) = outbound;
-		return 1;
-	}
-	else if (strcmp(command, "FILE_RESPONSE") == 0) {
-		(*toSend) = outbound;
-		return 1;
-	}
-	else if (strcmp(command, "CHAT_RESPONSE") == 0) {
-		
-		if (strcmp((*toSend).message, "Y") == 0) {
-			fprintf(stdout, "Alias: ");
-			fgets((*toSend).alias, sizeof (*toSend).alias, stdin);
-
-			// Manual removal of newline character
-			int len = strlen((*toSend).alias);
-			if (len > 0 && (*toSend).alias[len-1] == '\n') { (*toSend).alias[len-1] = '\0'; }
-		}
-		
 		return 1;
 	}
 
