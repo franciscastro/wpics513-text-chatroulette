@@ -40,6 +40,7 @@ struct packet {
 	char message[MAXMESSAGESIZE];	// Data
 	char alias[MAXCOMMANDSIZE];		// Client alias
 	char filename[MAXCOMMANDSIZE];	// File name if needed
+	int filebytesize;				// Size in bytes of message
 };
 
 struct threaddata {
@@ -223,8 +224,8 @@ void *receiver(void *param) {
 
 		if (recvd > 0) {
 
-			fprintf(stdout, "COMMAND: %s\nMESSAGE: %s\n", msgrecvd.command, msgrecvd.message);
-			//fflush(stdout);
+			//fprintf(stdout, "COMMAND: %s\nMESSAGE: %s\n", msgrecvd.command, msgrecvd.message);
+			fflush(stdout);
 
 			// Special case: when receiving files
 			if (strcmp(msgrecvd.command, "FILE_SEND") == 0) {
@@ -232,7 +233,7 @@ void *receiver(void *param) {
 				// First file packet received
 				if (isReceiving == 0) {
 
-					fprintf(stdout, ">>>>> ISRECEIVING = 0\n");
+					//fprintf(stdout, ">>>>> ISRECEIVING = 0\n");
 
 					// For getting file name from user
 					//fprintf(stdout, "Save file as: ");
@@ -243,30 +244,34 @@ void *receiver(void *param) {
 					//if (len > 0 && fileRecvName[len-1] == '\n') { fileRecvName[len-1] = '\0'; }
 
 					strncpy(fileRecvName, msgrecvd.filename, MAXCOMMANDSIZE);
+					fprintf(stdout, "Downloading %s...\n", fileRecvName);
 
 					// Open for writing
 					fp = fopen(fileRecvName, "ab");
 					if (fp == NULL) { fprintf(stdout, "File write error. Check your file name.\n"); }
+
+					fwrite(msgrecvd.message, 1, /*sizeof(msgrecvd.message)*/msgrecvd.filebytesize, fp);
 
 					// Change status to currently receiving file data
 					isReceiving = 1;
 				}
 				// Rest of the file packets
 				else {
-					fprintf(stdout, ">>>>> REST OF THE FILE\n");
-					fwrite(msgrecvd.message, 1, sizeof(msgrecvd.message), fp);
+					//fprintf(stdout, ">>>>> REST OF THE FILE\n");
+					fwrite(msgrecvd.message, 1, /*sizeof(msgrecvd.message)*/msgrecvd.filebytesize, fp);
 				}
 
 			}
 			// End of file
 			else if (strcmp(msgrecvd.command, "FILE_END") == 0) {
-				fprintf(stdout, ">>>>> FCLOSE PART\n");
+				//fprintf(stdout, ">>>>> FCLOSE PART\n");
 				fclose(fp);
 				isReceiving = 0;
+				fprintf(stdout, "%s saved.\n", fileRecvName);
 			}
 			// Other cases
 			else {
-				fprintf(stdout, ">>>>> OTHER CASES\n");
+				//fprintf(stdout, ">>>>> OTHER CASES\n");
 				receivedDataHandler(&msgrecvd);
 			}
 
@@ -427,6 +432,16 @@ int sendFilePackets() {
 	// Manual removal of newline character
 	int len = strlen(filename);
 	if (len > 0 && filename[len-1] == '\n') { filename[len-1] = '\0'; }
+
+	// If file is > 100 MB, don't send
+	int fullsize = filesize(filename);
+	if (fullsize > 104857600) {
+		fprintf(stdout, "Sending files > 100 MB is prohibited.\n");
+		return 1;
+	}
+	else {
+		fprintf(stdout, "File size: %i bytes\n", fullsize);
+	}
 	
 	// Create file pointer
 	FILE *fp = fopen(filename, "rb");
@@ -437,11 +452,11 @@ int sendFilePackets() {
 		return 1;
 	}
 
-	// file buffer to store chunks of files
-	char filebuff[MAXMESSAGESIZE];
-
 	// Read and send file packets
 	while(!feof(fp)){
+
+		// file buffer to store chunks of files
+		char filebuff[MAXMESSAGESIZE];
 
 		// Outbound data packet
 		struct packet outbound;
@@ -449,7 +464,10 @@ int sendFilePackets() {
 		strncpy(outbound.filename, filename, MAXCOMMANDSIZE);
 
 		// Read data from file
-		fread(outbound.message, 1, MAXMESSAGESIZE, fp);
+		int numread = fread(outbound.message, 1, MAXMESSAGESIZE, fp);
+		//fprintf(stdout, "Bytes read: %i\n", numread);
+		//strncpy(outbound.message, filebuff, MAXMESSAGESIZE);
+		outbound.filebytesize = numread;
 		
 		// Send data to server
 		sendDataToServer(&outbound);
