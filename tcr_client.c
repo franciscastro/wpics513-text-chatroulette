@@ -1,7 +1,7 @@
 /*
 Authors: Francisco Castro, Antonio Umali
 CS 513 Project 1 - Chat Roulette
-Last modified: 11 Oct 2015
+Last modified: 12 Oct 2015
 
 This is the TCR client process file.
 */
@@ -10,18 +10,6 @@ This is the TCR client process file.
 
 #define PORT "3490" // the port client will be connecting to
 #define MAXDATASIZE 1000 // max number of bytes we can get at once
-
-/*
-TO DO:
-- CONNECT [DONE]
-- CHAT
-- QUIT
-- TRANSFER
-- FLAG
-- HELP
-- EXIT [DONE]
-- MESSAGE
-*/
 
 
 int main(/*int argc, char *argv[]*/)

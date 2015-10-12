@@ -1,7 +1,7 @@
 /*
 Authors: Francisco Castro, Antonio Umali
 CS 513 Project 1 - Chat Roulette
-Last modified: 11 Oct 2015
+Last modified: 12 Oct 2015
 
 This is the TCR client header file.
 */
