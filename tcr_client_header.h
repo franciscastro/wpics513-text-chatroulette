@@ -55,6 +55,7 @@ struct threaddata {
 };
 
 void *get_in_addr(struct sockaddr *sa);
+int fetchServerHostname(char *hostname);
 int commandTranslate(char *command);
 int connectToHost(char *PORT, struct addrinfo *hints, struct addrinfo **servinfo, int *error_status, char *hostname, struct addrinfo **p);
 void *receiver(void *param);
