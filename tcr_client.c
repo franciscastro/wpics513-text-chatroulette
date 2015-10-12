@@ -105,8 +105,15 @@ int main(/*int argc, char *argv[]*/)
 			// CHAT
 			case 2: 
 					if (isconnected > 0) {
-						struct packet toSend = createPacket(command);
-						int sent = sendDataToServer(&toSend);
+						struct packet toSend;
+
+						if(createPacket(command, &toSend) == -1) {
+							fprintf(stderr, "Can't create data to send. Try again.\n");
+						}
+						else {
+							int sent = sendDataToServer(&toSend);
+						}
+
 						memset(&toSend, 0, sizeof(struct packet));	// Empty the struct
 					}
 					else {
@@ -116,8 +123,15 @@ int main(/*int argc, char *argv[]*/)
 			// QUIT
 			case 3: 
 					if (isconnected > 0) {
-						struct packet toSend = createPacket(command);
-						int sent = sendDataToServer(&toSend);
+						struct packet toSend;
+
+						if(createPacket(command, &toSend) == -1) {
+							fprintf(stderr, "Can't create data to send. Try again.\n");
+						}
+						else {
+							int sent = sendDataToServer(&toSend);
+						}
+
 						memset(&toSend, 0, sizeof(struct packet));	// Empty the struct
 					}
 					else {
@@ -128,7 +142,7 @@ int main(/*int argc, char *argv[]*/)
 			case 4: 
 					if (isconnected > 0) {
 						if (sendFilePackets(sockfd) == 0) {
-							printf("File sent.\n\n");
+							printf("File pending in server...\n\n");	// File is in server
 						}
 						else {
 							printf("Failed to send file.\n\n");
@@ -141,8 +155,15 @@ int main(/*int argc, char *argv[]*/)
 			// FLAG
 			case 5: 
 					if (isconnected > 0) {
-						struct packet toSend = createPacket(command);
-						int sent = sendDataToServer(&toSend);
+						struct packet toSend;
+
+						if(createPacket(command, &toSend) == -1) {
+							fprintf(stderr, "Can't create data to send. Try again.\n");
+						}
+						else {
+							int sent = sendDataToServer(&toSend);
+						}
+
 						memset(&toSend, 0, sizeof(struct packet));	// Empty the struct
 					}
 					else {
@@ -152,8 +173,15 @@ int main(/*int argc, char *argv[]*/)
 			// HELP
 			case 6: 
 					if (isconnected > 0) {
-						struct packet toSend = createPacket(command);
-						int sent = sendDataToServer(&toSend);
+						struct packet toSend;
+
+						if(createPacket(command, &toSend) == -1) {
+							fprintf(stderr, "Can't create data to send. Try again.\n");
+						}
+						else {
+							int sent = sendDataToServer(&toSend);
+						}
+
 						memset(&toSend, 0, sizeof(struct packet));	// Empty the struct
 					}
 					else {
@@ -163,8 +191,15 @@ int main(/*int argc, char *argv[]*/)
 			// MESSAGE
 			case 7: 
 					if (isconnected > 0) {
-						struct packet toSend = createPacket(command);
-						int sent = sendDataToServer(&toSend);
+						struct packet toSend;
+
+						if(createPacket(command, &toSend) == -1) {
+							fprintf(stderr, "Can't create data to send. Try again.\n");
+						}
+						else {
+							int sent = sendDataToServer(&toSend);
+						}
+
 						memset(&toSend, 0, sizeof(struct packet));	// Empty the struct
 					}
 					else {
