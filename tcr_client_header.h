@@ -215,6 +215,7 @@ void *receiver(void *param) {
 	FILE *fp;
 	int isReceiving = 0;	// 0 - not receiving files, 1 - receiving files
 	char fileRecvName[MAXCOMMANDSIZE];
+	int counter = 0;
 
 	// Set isconnected flag since client successfully connected to server
 	isconnected = 1;
@@ -243,7 +244,19 @@ void *receiver(void *param) {
 				// First file packet received
 				if (isReceiving == 0) {
 
-					strncpy(fileRecvName, msgrecvd.filename, MAXCOMMANDSIZE);
+					// If file already exists in current directory, prepend a number to filename
+					if (access(msgrecvd.filename, F_OK) != -1) {
+						char prepend[MAXCOMMANDSIZE];
+						sprintf(prepend, "%i", counter);
+						//fprintf(stdout, "in here: %s\n", prepend);
+						strncpy(fileRecvName, prepend, MAXCOMMANDSIZE);
+						strcat(fileRecvName,msgrecvd.filename);
+						counter++;
+					}
+					else {
+						strncpy(fileRecvName, msgrecvd.filename, MAXCOMMANDSIZE);
+					}					
+
 					fprintf(stdout, "Downloading %s...\n", fileRecvName);
 
 					// Open for writing
