@@ -216,6 +216,9 @@ void *receiver(void *param) {
 	int isReceiving = 0;	// 0 - not receiving files, 1 - receiving files
 	char fileRecvName[MAXCOMMANDSIZE];
 
+	// Set isconnected flag since client successfully connected to server
+	isconnected = 1;
+
 	// While connection with server is alive
 	while(isconnected) {
 
@@ -304,6 +307,9 @@ void receivedDataHandler(struct packet *msgrecvd) {
 	}
 	else if (strcmp((*msgrecvd).command, "CHAT_ACK") == 0) {
 		fprintf(stdout, "Now chatting with %s\n", (*msgrecvd).alias);
+	}
+	else if (strcmp((*msgrecvd).command, "NOTIF") == 0) {
+		fprintf(stdout, "%s\n", (*msgrecvd).message);
 	}
 
 }
@@ -395,6 +401,8 @@ int sendFilePackets() {
 		//fprintf(stdout, "Bytes read: %i\n", numread);
 		//strncpy(outbound.message, filebuff, MAXMESSAGESIZE);
 		outbound.filebytesize = numread;
+
+		strncpy(outbound.alias, alias, MAXCOMMANDSIZE);
 		
 		// Send data to server
 		sendDataToServer(&outbound);
