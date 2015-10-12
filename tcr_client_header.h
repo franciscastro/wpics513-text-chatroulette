@@ -351,6 +351,7 @@ int sendDataToServer(struct packet *packet) {
 
     packetlen = total;	// Return number actually sent here
 
+    memset(packet, 0, sizeof(struct packet));	// Empty the struct
 	return n == -1 ? -1 : 0;	// Return 0 on success, -1 on failure
 }
 
