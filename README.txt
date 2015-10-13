@@ -9,6 +9,7 @@ Last modified: 12 October 2015
 
 Notes:
 - This project was developed, compiled, and tested on an Ubuntu Linux OS machine
+- These instructions assume the use of a Linux machine
 
 ======================================================================================
 
@@ -43,11 +44,13 @@ If the project is compressed as an archive file, extract the contents of the arc
 
 [2] COMPILING TEXT CHATROULETTE
 
-a. Once you have all the necessary files listed in [1], open a terminal, navigate to the directory containing the project files and run the following command:
+a. Set the hostname of the Text ChatRoulette server in the HOSTNAME file. You may edit the hostname indicated in the file with a text editor. Save and close the HOSTNAME file.
+
+b. Once you have all the necessary files listed in [1], open a terminal, navigate to the directory containing the project files and run the following command:
 
 make
 
-b. Running the make command will produce two (2) executable files:
+c. Running the make command will produce two (2) executable files:
 - server
 - client
 
