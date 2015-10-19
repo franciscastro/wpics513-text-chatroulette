@@ -27,11 +27,11 @@ Before compiling and running Text ChatRoulette, make sure the following files ar
 
 1. Server files
 (a) tcr_server.c
-(b) tcr_server.h
+(b) tcr_server_header.h
 
 2. Client files
 (a) tcr_client.c
-(b) tcr_client.h
+(b) tcr_client_header.h
 
 3. Other project files
 (a) makefile
@@ -51,8 +51,8 @@ b. Once you have all the necessary files listed in [1], open a terminal, navigat
 make
 
 c. Running the make command will produce two (2) executable files:
-- tcrserver
-- tcrclient
+- server
+- client
 
 
 ======================================================================================
@@ -61,11 +61,11 @@ c. Running the make command will produce two (2) executable files:
 
 a. To run the Text ChatRoulette server, open a terminal, navigate to the directory containing the project files and the executable files produced by 'make', and run the following command:
 
-./tcrserver
+./server
 
 b. To run the Text ChatRoulette client, open a terminal, navigate to the directory containing the project files and the executable files produced by 'make', and run the following command:
 
-./tcrclient
+./client
 
 c. You may run multiple instances of the client to connect to the server. Just copy the directory containing all the project files and executable files into another directory and run the client from there.
 

@@ -1,12 +1,12 @@
 /*
-Authors: Francisco Castro
+Authors: Francisco Castro, Antonio Umali
 CS 513 Project 1 - Chat Roulette
 Last modified: 12 Oct 2015
 
 This is the TCR client process file.
 */
 
-#include "tcr_client.h"
+#include "tcr_client_header.h"
 
 #define PORT "3490" // the port client will be connecting to
 #define MAXDATASIZE 1000 // max number of bytes we can get at once
@@ -123,7 +123,7 @@ int main(/*int argc, char *argv[]*/)
 			case 4: 
 					if (isconnected > 0) {
 						if (sendFilePackets(sockfd) == 0) {
-							printf("File sent.\n\n");	// File is in server
+							printf("File pending in server...\n\n");	// File is in server
 						}
 						else {
 							printf("Failed to send file.\n\n");
